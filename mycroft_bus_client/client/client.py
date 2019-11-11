@@ -16,7 +16,7 @@ from collections import namedtuple
 import json
 import time
 import traceback
-from threading import Event
+from threading import Event, Thread
 
 from websocket import (WebSocketApp,
                        WebSocketConnectionClosedException,
@@ -199,6 +199,13 @@ class MessageBusClient:
     def close(self):
         self.client.close()
         self.connected_event.clear()
+
+    def run_in_thread(self):
+        """Launches the run_forever in a separate daemon thread."""
+        t = Thread(target=self.run_forever)
+        t.daemon = True
+        t.start()
+        return t
 
 
 def echo():
