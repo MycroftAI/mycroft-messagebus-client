@@ -37,7 +37,7 @@ client.emit(Message('speak', data={'utterance': 'Hello World'}))
 
 ### Catching a message on the messagebus
 
-```
+```python
 from mycroft_bus_client import MessageBusClient, Message
 
 print('Setting up client to connect to a local mycroft instance')
