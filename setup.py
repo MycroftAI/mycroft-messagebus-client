@@ -24,7 +24,8 @@ from setuptools import setup
 setup(
     name='mycroft-messagebus',
     version='0.8',
-    packages=['mycroft_bus_client', 'mycroft_bus_client.client'],
+    packages=['mycroft_bus_client', 'mycroft_bus_client.client',
+              'mycroft_bus_client.util'],
     install_requires=['websocket-client==0.54.0',
                       'pyee==5.0.0'],
     url='https://github.com/MycroftAI/mycroft-messagebus',
