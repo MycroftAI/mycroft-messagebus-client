@@ -30,7 +30,7 @@ setup(
                       'pyee==5.0.0'],
     url='https://github.com/MycroftAI/mycroft-messagebus',
     license='Apache-2.0',
-    author='mycroft-devs',
+    author='Mycroft AI, Åke Forslund',
     author_email='devs@mycroft.ai, ake.forslund@mycroft.ai',
     description='Mycroft Messagebus Client',
     data_files=[('mycroft_bus_client', ['LICENSE.md'])]
