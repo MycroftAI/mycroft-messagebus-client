@@ -21,8 +21,13 @@
 # under the License.
 from setuptools import setup
 
+
+with open("README.md", "r") as fh:
+    long_desc = fh.read()
+
+
 setup(
-    name='mycroft-messagebus',
+    name='mycroft-messagebus-client',
     version='0.8',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
@@ -33,5 +38,7 @@ setup(
     author='Mycroft AI, Åke Forslund',
     author_email='devs@mycroft.ai, ake.forslund@mycroft.ai',
     description='Mycroft Messagebus Client',
+    long_description=long_desc,
+    long_description_content_type="text/markdown",
     data_files=[('mycroft_bus_client', ['LICENSE.md'])]
 )
