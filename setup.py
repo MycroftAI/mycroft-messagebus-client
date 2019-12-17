@@ -28,7 +28,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='mycroft-messagebus-client',
-    version='0.8',
+    version='0.8.1',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
     install_requires=['websocket-client==0.54.0',
