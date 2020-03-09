@@ -33,7 +33,7 @@ setup(
               'mycroft_bus_client.util'],
     install_requires=['websocket-client==0.54.0',
                       'pyee==5.0.0'],
-    url='https://github.com/MycroftAI/mycroft-messagebus',
+    url='https://github.com/MycroftAI/mycroft-messagebus-client',
     license='Apache-2.0',
     author='Mycroft AI, Åke Forslund',
     author_email='devs@mycroft.ai, ake.forslund@mycroft.ai',
