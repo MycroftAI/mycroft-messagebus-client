@@ -1,2 +1,2 @@
 websocket-client==0.54.0
-pyee==5.0.0
+pyee==7.0.1
