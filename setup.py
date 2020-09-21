@@ -47,7 +47,6 @@ setup(
     description='Mycroft Messagebus Client',
     long_description=long_desc,
     long_description_content_type="text/markdown",
-    data_files=[('mycroft_bus_client', ['LICENSE.md'])],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
