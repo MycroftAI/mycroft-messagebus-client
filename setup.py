@@ -47,5 +47,15 @@ setup(
     description='Mycroft Messagebus Client',
     long_description=long_desc,
     long_description_content_type="text/markdown",
-    data_files=[('mycroft_bus_client', ['LICENSE.md'])]
+    data_files=[('mycroft_bus_client', ['LICENSE.md'])],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: Apache Software License',
+
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+    ]
 )
