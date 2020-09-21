@@ -19,20 +19,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 from setuptools import setup
 
 
 with open("README.md", "r") as fh:
     long_desc = fh.read()
 
+def required(requirements_file):
+    """ Read requirements file and remove comments and empty lines. """
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(base_dir, requirements_file), 'r') as f:
+        requirements = f.read().splitlines()
+        return [pkg for pkg in requirements
+                if pkg.strip() and not pkg.startswith("#")]
 
 setup(
     name='mycroft-messagebus-client',
     version='0.8.1',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
-    install_requires=['websocket-client==0.54.0',
-                      'pyee==5.0.0'],
+    install_requires=required('requirements.txt'),
     url='https://github.com/MycroftAI/mycroft-messagebus-client',
     license='Apache-2.0',
     author='Mycroft AI, Åke Forslund',
