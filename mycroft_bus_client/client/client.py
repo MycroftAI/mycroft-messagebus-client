@@ -14,6 +14,7 @@
 #
 from collections import namedtuple
 import json
+from pyee import ExecutorEventEmitter
 import time
 import traceback
 from threading import Event, Thread
@@ -23,7 +24,6 @@ from websocket import (WebSocketApp,
                        WebSocketException)
 
 from ..message import Message
-from .threaded_event_emitter import ThreadedEventEmitter
 
 import logging
 
@@ -37,7 +37,7 @@ MessageBusClientConf = namedtuple('MessageBusClientConf',
 class MessageBusClient:
     def __init__(self, host='0.0.0.0', port=8181, route='/core', ssl=False):
         self.config = MessageBusClientConf(host, port, route, ssl)
-        self.emitter = ThreadedEventEmitter()
+        self.emitter = ExecutorEventEmitter()
         self.client = self.create_client()
         self.retry = 5
         self.connected_event = Event()
