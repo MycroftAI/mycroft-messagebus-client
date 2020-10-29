@@ -39,6 +39,10 @@ setup(
     version='0.8.3',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
+    package_data={
+      '*': ['*.txt', '*.md']
+    },
+    include_package_data=True,
     install_requires=required('requirements.txt'),
     url='https://github.com/MycroftAI/mycroft-messagebus-client',
     license='Apache-2.0',
