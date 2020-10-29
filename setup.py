@@ -40,6 +40,7 @@ setup(
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
     install_requires=required('requirements.txt'),
+    include_package_data=True,
     url='https://github.com/MycroftAI/mycroft-messagebus-client',
     license='Apache-2.0',
     author='Mycroft AI, Åke Forslund',
