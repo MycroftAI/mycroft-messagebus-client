@@ -47,7 +47,7 @@ setup(
     url='https://github.com/MycroftAI/mycroft-messagebus-client',
     license='Apache-2.0',
     author='Mycroft AI, Åke Forslund',
-    author_email='devs@mycroft.ai, ake.forslund@mycroft.ai',
+    author_email='devs@mycroft.ai, ake.forslund@gmail.com',
     description='Mycroft Messagebus Client',
     long_description=long_desc,
     long_description_content_type="text/markdown",
