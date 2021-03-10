@@ -30,8 +30,8 @@ class Message:
     def __init__(self, msg_type, data=None, context=None):
         """Used to construct a message object
 
-        Message objects will be used to send information back and fourth
-        bettween processes of mycroft service, voice, skill and cli
+        Message objects will be used to send information back and forth
+        between processes of mycroft service, voice, skill and cli
         """
         self.msg_type = msg_type
         self.data = data or {}
@@ -70,6 +70,23 @@ class Message:
         return Message(obj.get('type') or '',
                        obj.get('data') or {},
                        obj.get('context') or {})
+
+    def forward(self, msg_type, data=None):
+        """ Keep context and forward message
+
+        This will take the same parameters as a message object but use
+        the current message object as a reference.  It will copy the context
+        from the existing message object.
+
+        Args:
+            msg_type (str): type of message
+            data (dict): data for message
+
+        Returns:
+            Message: Message object to be used on the reply to the message
+        """
+        data = data or {}
+        return Message(msg_type, data, context=self.context)
 
     def reply(self, msg_type, data=None, context=None):
         """Construct a reply message for a given message
