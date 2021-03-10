@@ -26,6 +26,7 @@ from setuptools import setup
 with open("README.md", "r") as fh:
     long_desc = fh.read()
 
+
 def required(requirements_file):
     """ Read requirements file and remove comments and empty lines. """
     base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -34,9 +35,10 @@ def required(requirements_file):
         return [pkg for pkg in requirements
                 if pkg.strip() and not pkg.startswith("#")]
 
+
 setup(
     name='mycroft-messagebus-client',
-    version='0.8.4',
+    version='0.9.0',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
     package_data={
