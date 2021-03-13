@@ -14,13 +14,14 @@
 #
 import json
 import time
+import logging
 from threading import Thread, Lock
-from os.path import isfile, join, expanduser
+from os.path import isfile, expanduser
 
-from mycroft.configuration import Configuration
-from mycroft.messagebus.message import Message
-from mycroft.util.log import LOG
+from mycroft_bus_client.message import Message
 
+
+LOG = logging.getLogger()
 
 def repeat_time(sched_time, repeat):
     """Next scheduled time for repeating event. Guarantees that the
@@ -45,11 +46,11 @@ class EventScheduler(Thread):
 
     Arguments:
         bus:            Mycroft messagebus (mycroft.messagebus)
-        schedule_file:  File to store pending events to on shutdown
+        schedule_file:  Path to file used to store pending events to on
+                        shutdown.
     """
     def __init__(self, bus, schedule_file=None):
         super().__init__()
-        data_dir = expanduser(Configuration.get()['data_dir'])
 
         self.events = {}
         self.event_lock = Lock()
@@ -57,7 +58,7 @@ class EventScheduler(Thread):
         self.bus = bus
         self.is_running = True
         if schedule_file:
-            self.schedule_file = join(data_dir, schedule_file)
+            self.schedule_file = expanduser(schedule_file)
             self.load()
         else:
             self.schedule_file = None
