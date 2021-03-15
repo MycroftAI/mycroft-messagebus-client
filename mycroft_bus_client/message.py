@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 import json
+import inspect
+
+from copy import deepcopy
 
 
 class Message:
