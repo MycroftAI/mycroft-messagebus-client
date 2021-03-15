@@ -23,7 +23,8 @@ from websocket import (WebSocketApp,
                        WebSocketConnectionClosedException,
                        WebSocketException)
 
-from ..message import Message
+from mycroft_bus_client.message import Message
+from mycroft_bus_client.util import create_echo_function
 
 import logging
 
