@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 import json
+import inspect
+
+from copy import deepcopy
 
 
 class Message:
@@ -30,8 +33,8 @@ class Message:
     def __init__(self, msg_type, data=None, context=None):
         """Used to construct a message object
 
-        Message objects will be used to send information back and fourth
-        bettween processes of mycroft service, voice, skill and cli
+        Message objects will be used to send information back and forth
+        between processes of mycroft service, voice, skill and cli
         """
         self.msg_type = msg_type
         self.data = data or {}
@@ -71,16 +74,33 @@ class Message:
                        obj.get('data') or {},
                        obj.get('context') or {})
 
+    def forward(self, msg_type, data=None):
+        """ Keep context and forward message
+
+        This will take the same parameters as a message object but use
+        the current message object as a reference.  It will copy the context
+        from the existing message object.
+
+        Args:
+            msg_type (str): type of message
+            data (dict): data for message
+
+        Returns:
+            Message: Message object to be used on the reply to the message
+        """
+        data = data or {}
+        return Message(msg_type, data, context=self.context)
+
     def reply(self, msg_type, data=None, context=None):
         """Construct a reply message for a given message
 
         This will take the same parameters as a message object but use
         the current message object as a reference.  It will copy the context
         from the existing message object and add any context passed in to
-        the function.  Check for a target passed in to the function from
-        the data object and add that to the context as a target.  If the
-        context has a client name then that will become the target in the
-        context.  The new message will then have data passed in plus the
+        the function.  Check for a destination passed in to the function from
+        the data object and add that to the context as a destination.  If the
+        context has a source then that will be swapped with the destination
+        in the context.  The new message will then have data passed in plus the
         new context generated.
 
         Args:
@@ -91,16 +111,18 @@ class Message:
         Returns:
             Message: Message object to be used on the reply to the message
         """
-        data = data or {}
+        data = deepcopy(data) or {}
         context = context or {}
 
-        new_context = self.context
+        new_context = deepcopy(self.context)
         for key in context:
             new_context[key] = context[key]
-        if 'target' in data:
-            new_context['target'] = data['target']
-        elif 'client_name' in context:
-            context['target'] = context['client_name']
+        if 'destination' in data:
+            new_context['destination'] = data['destination']
+        if 'source' in new_context and 'destination' in new_context:
+            s = new_context['destination']
+            new_context['destination'] = new_context['source']
+            new_context['source'] = s
         return Message(msg_type, data, context=new_context)
 
     def response(self, data=None, context=None):
@@ -115,8 +137,8 @@ class Message:
         Returns
             (Message) message with the type modified to match default response
         """
-        response_message = self.reply(self.msg_type, data or {}, context)
-        response_message.msg_type += '.response'
+        response_message = Message(self.msg_type + '.response', data or {},
+                                   context or self.context)
         return response_message
 
     def publish(self, msg_type, data, context=None):
@@ -142,3 +164,14 @@ class Message:
             del new_context['target']
 
         return Message(msg_type, data, context=new_context)
+
+
+def dig_for_message():
+    """Dig Through the stack for message."""
+    stack = inspect.stack()
+    # Limit search to 10 frames back
+    stack = stack if len(stack) < 10 else stack[:10]
+    local_vars = [frame[0].f_locals for frame in stack]
+    for l in local_vars:
+        if 'message' in l and isinstance(l['message'], Message):
+            return l['message']
