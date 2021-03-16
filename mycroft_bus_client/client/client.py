@@ -31,6 +31,53 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+class MessageWaiter:
+    """Wait for a single message.
+
+    Encapsulate the wait for a message logic separating the setup from
+    the actual waiting act so the waiting can be setuo, actions can be
+    performed and _then_ the message can be waited for.
+
+    Argunments:
+        bus: Bus to check for messages on
+        message_type: message type to wait for
+    """
+    def __init__(self, bus, message_type):
+        self.bus = bus
+        self.msg_type = message_type
+        self.received_msg = None
+        # Setup response handler
+        self.response_event = Event()
+        self.bus.once(message_type, self._handler)
+
+    def _handler(self, message):
+        """Receive response data."""
+        self.received_msg = message
+        self.response_event.set()
+
+    def wait(self, timeout=3.0):
+        """Wait for message.
+
+        Arguments:
+            timeout (int or float): seconds to wait for message
+
+        Returns:
+            Message or None
+        """
+        self.response_event.wait(timeout)
+        if not self.response_event.is_set():
+            # Clean up the event handler
+            try:
+                self.bus.remove(self.msg_type, self._handler)
+            except (ValueError, KeyError):
+                # ValueError occurs on pyee 5.0.1 removing handlers
+                # registered with once.
+                # KeyError may theoretically occur if the event occurs as
+                # the handler is removed
+                pass
+        return self.received_msg
+
+
 MessageBusClientConf = namedtuple('MessageBusClientConf',
                                   ['host', 'port', 'route', 'ssl'])
 
@@ -117,42 +164,36 @@ class MessageBusClient:
             LOG.warning('Could not send {} message because connection '
                         'has been closed'.format(message.msg_type))
 
-    def wait_for_response(self, message, reply_type=None, timeout=None):
+    def wait_for_message(self, message_type, timeout=3.0):
+        """Wait for a message of a specific type.
+
+        Arguments:
+            message_type (str): the message type of the expected message
+            timeout: seconds to wait before timeout, defaults to 3
+
+        Returns:
+            The received message or None if the response timed out
+        """
+
+        return MessageWaiter(self, message_type).wait(timeout)
+
+    def wait_for_response(self, message, reply_type=None, timeout=3.0):
         """Send a message and wait for a response.
 
-        Args:
+        Arguments:
             message (Message): message to send
             reply_type (str): the message type of the expected reply.
                               Defaults to "<message.msg_type>.response".
             timeout: seconds to wait before timeout, defaults to 3
+
         Returns:
             The received message or None if the response timed out
         """
-        response = []
-        response_event = Event()
-
-        def handler(message):
-            """Receive response data."""
-            response.append(message)
-            response_event.set()
-
-        # Setup response handler
-        self.once(reply_type or message.msg_type + '.response', handler)
-        # Send request
+        message_type = reply_type or message.msg_type + '.response'
+        waiter = MessageWaiter(self, message_type)  # Setup response handler
+        # Send message and wait for it's response
         self.emit(message)
-        # Wait for response
-        response_event.wait(timeout or 3.0)
-        if response_event.is_set():
-            return response[0]
-        try:
-            self.remove(reply_type, handler)
-        except (ValueError, KeyError):
-            # ValueError occurs on pyee 1.0.1 removing handlers
-            # registered with once.
-            # KeyError may theoretically occur if the event occurs as
-            # the handler is removed
-            pass
-        return None
+        return waiter.wait(timeout)
 
     def on(self, event_name, func):
         self.emitter.on(event_name, func)
