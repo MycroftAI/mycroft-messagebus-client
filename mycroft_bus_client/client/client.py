@@ -129,30 +129,30 @@ class MessageBusClient:
             The received message or None if the response timed out
         """
         response = []
+        response_event = Event()
 
         def handler(message):
             """Receive response data."""
             response.append(message)
+            response_event.set()
 
         # Setup response handler
         self.once(reply_type or message.msg_type + '.response', handler)
         # Send request
         self.emit(message)
         # Wait for response
-        start_time = time.monotonic()
-        while len(response) == 0:
-            time.sleep(0.2)
-            if time.monotonic() - start_time > (timeout or 3.0):
-                try:
-                    self.remove(reply_type, handler)
-                except (ValueError, KeyError):
-                    # ValueError occurs on pyee 1.0.1 removing handlers
-                    # registered with once.
-                    # KeyError may theoretically occur if the event occurs as
-                    # the handler is removed
-                    pass
-                return None
-        return response[0]
+        response_event.wait(timeout or 3.0)
+        if response_event.is_set():
+            return response[0]
+        try:
+            self.remove(reply_type, handler)
+        except (ValueError, KeyError):
+            # ValueError occurs on pyee 1.0.1 removing handlers
+            # registered with once.
+            # KeyError may theoretically occur if the event occurs as
+            # the handler is removed
+            pass
+        return None
 
     def on(self, event_name, func):
         self.emitter.on(event_name, func)
