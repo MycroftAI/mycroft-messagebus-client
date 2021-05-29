@@ -192,3 +192,72 @@ def dig_for_message(max_records: int = 10) -> Optional[Message]:
                 if isinstance(args.locals[arg], Message):
                     return args.locals[arg]
     return None
+
+
+class CollectionMessage(Message):
+    """Extension of the Message class for use with collect handlers.
+
+    The class provides the convenience methods success and failure to report
+    these states back to the origin.
+    """
+    def __init__(self, msg_type, handler_id, query_id,
+                 data=None, context=None):
+        super().__init__(msg_type, data, context)
+        self.handler_id = handler_id
+        self.query_id = query_id
+
+    @classmethod
+    def from_message(cls, message, handler_id, query_id):
+        """Build a CollectionMessage based of a Message object.
+
+        Args:
+            message (Message): the original message
+            handler_id (str): the handler_id of the recipient
+            query_id (str): the query session id
+
+        Returns:
+            CollectionMessage based on the original Message object
+        """
+        return cls(message.msg_type, handler_id, query_id,
+                   message.data, message.context)
+
+    def success(self, data=None, context=None):
+        """Create a message indicating a successful result.
+
+        The handler could handle the query and created some sort of response.
+
+            data (dict): message data
+            context (dict): message context
+        Returns:
+            Message
+        """
+        data = data or {}
+        data['query'] = self.query_id
+        data['handler'] = self.handler_id
+        data['succeeded'] = True
+        response_message = Message(self.msg_type + '.response',
+                                   data,
+                                   context or self.context)
+        return response_message
+
+    def failure(self):
+        """Create a message indicating a failing result.
+
+        The handler could not handle the query.
+
+            data (dict): message data
+            context (dict): message context
+        Returns:
+            Message
+        """
+        data = {}
+        data['query'] = self.query_id
+        data['handler'] = self.handler_id
+        data['succeeded'] = False
+        response_message = Message(self.msg_type + '.response',
+                                   data,
+                                   self.context)
+        return response_message
+
+    def extend(self):
+        """TODO: EXTEND THE TIMEOUT..."""
