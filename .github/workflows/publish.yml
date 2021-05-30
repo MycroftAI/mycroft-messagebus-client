@@ -4,7 +4,7 @@
 name: Python package
 
 on:
-  pull_request:
+  push:
     branches: [ master ]
 
 jobs:
@@ -35,3 +35,24 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+
+  tag-release-if-needed:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Tag release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        git remote add tag_target "https://$GITHUB_TOKEN@github.com/MycroftAI/mycroft-messagebus-client.git"
+        VERSION=$(python setup.py --version)
+        git tag -f release/v$VERSION || exit 0
+        if git push tag_target --tags; then
+          echo "New tag published on github, push to pypi as well."
+          pip install twine wheel
+          python setup.py sdist bdist_wheel
+          twine check dist/*
+          twine upload dist/*
+        fi
