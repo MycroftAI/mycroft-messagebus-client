@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+Tools and constructs that are useful together with the messagebus.
+"""
+
 from .scheduler import EventScheduler
 from .utils import create_echo_function
 

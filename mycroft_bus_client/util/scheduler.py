@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+The scheduler module allows setting up scheduled messages.
+
+A scheduled message will be kept and not sent until the system clock time
+criteria is met.
+"""
 import json
 import time
 import logging
@@ -22,6 +28,7 @@ from mycroft_bus_client.message import Message
 
 
 LOG = logging.getLogger()
+
 
 def repeat_time(sched_time, repeat):
     """Next scheduled time for repeating event. Guarantees that the
@@ -69,18 +76,18 @@ class EventScheduler(Thread):
         """Load json data with active events from json file."""
         if isfile(self.schedule_file):
             json_data = {}
-            with open(self.schedule_file) as f:
+            with open(self.schedule_file) as schedule_file:
                 try:
-                    json_data = json.load(f)
-                except Exception as e:
-                    LOG.error(e)
+                    json_data = json.load(schedule_file)
+                except Exception as exc:
+                    LOG.error(exc)
             current_time = time.time()
             with self.event_lock:
                 for key in json_data:
                     event_list = json_data[key]
                     # discard non repeating events that has already happened
-                    self.events[key] = [tuple(e) for e in event_list
-                                        if e[0] > current_time or e[1]]
+                    self.events[key] = [tuple(evt) for evt in event_list
+                                        if evt[0] > current_time or evt[1]]
 
     def run(self):
         while self.is_running:
@@ -94,11 +101,11 @@ class EventScheduler(Thread):
             pending_messages = []
             for event in self.events:
                 current_time = time.time()
-                e = self.events[event]
+                evt = self.events[event]
                 # Get scheduled times that has passed
-                passed = [(t, r, d) for (t, r, d) in e if t <= current_time]
+                passed = [(t, r, d) for (t, r, d) in evt if t <= current_time]
                 # and remaining times that we're still waiting for
-                remaining = [(t, r, d) for t, r, d in e if t > current_time]
+                remaining = [(t, r, d) for t, r, d in evt if t > current_time]
                 # Trigger registered methods
                 for sched_time, repeat, data in passed:
                     pending_messages.append(Message(event, data))
@@ -162,20 +169,21 @@ class EventScheduler(Thread):
         with self.event_lock:
             # if there is an active event with this name
             if len(self.events.get(event, [])) > 0:
-                time, repeat, _ = self.events[event][0]
-                self.events[event][0] = (time, repeat, data)
+                event_time, repeat, _ = self.events[event][0]
+                self.events[event][0] = (event_time, repeat, data)
 
     def store(self):
         """Write current schedule to disk."""
         with self.event_lock:
-            with open(self.schedule_file, 'w') as f:
-                json.dump(self.events, f)
+            with open(self.schedule_file, 'w') as schedule_file:
+                json.dump(self.events, schedule_file)
 
     def clear_repeating(self):
         """Remove repeating events from events dict."""
         with self.event_lock:
-            for e in self.events:
-                self.events[e] = [i for i in self.events[e] if i[1] is None]
+            for evt in self.events:
+                self.events[evt] = [tup for tup in self.events[evt]
+                                    if tup[1] is None]
 
     def clear_empty(self):
         """Remove empty event entries from events dict."""
