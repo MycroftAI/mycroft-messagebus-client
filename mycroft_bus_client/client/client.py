@@ -12,21 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+The messagebus client is an exteneded websocket connection using a
+standard format for the message and handles serialization / deserialization
+automatically.
+"""
 from collections import namedtuple
 import json
-from pyee import ExecutorEventEmitter
+import logging
 import time
 import traceback
 from threading import Event, Thread
 
+from pyee import ExecutorEventEmitter
 from websocket import (WebSocketApp,
                        WebSocketConnectionClosedException,
                        WebSocketException)
 
 from mycroft_bus_client.message import Message
 from mycroft_bus_client.util import create_echo_function
-
-import logging
 
 LOG = logging.getLogger(__name__)
 
@@ -83,6 +87,13 @@ MessageBusClientConf = namedtuple('MessageBusClientConf',
 
 
 class MessageBusClient:
+    """The Mycroft Messagebus Client
+
+    The Messagebus client connects to the Mycroft messagebus service
+    and allows communication with the system. It has been extended to work
+    like the pyee EventEmitter and tries to offer as much convenience as
+    possible to the developer.
+    """
     def __init__(self, host='0.0.0.0', port=8181, route='/core', ssl=False):
         self.config = MessageBusClientConf(host, port, route, ssl)
         self.emitter = ExecutorEventEmitter()
@@ -93,6 +104,7 @@ class MessageBusClient:
 
     @staticmethod
     def build_url(host, port, route, ssl):
+        """Build a websocket url."""
         return '{scheme}://{host}:{port}{route}'.format(
             scheme='wss' if ssl else 'ws',
             host=host,
@@ -100,6 +112,7 @@ class MessageBusClient:
             route=route)
 
     def create_client(self):
+        """Setup websocket client."""
         url = MessageBusClient.build_url(ssl=self.config.ssl,
                                          host=self.config.host,
                                          port=self.config.port,
@@ -108,6 +121,10 @@ class MessageBusClient:
                             on_error=self.on_error, on_message=self.on_message)
 
     def on_open(self, _):
+        """Handle the "open" event from the websocket.
+
+        A Basic message with the name "open" is forwarded to the emitter.
+        """
         LOG.info("Connected")
         self.connected_event.set()
         self.emitter.emit("open")
@@ -115,25 +132,28 @@ class MessageBusClient:
         self.retry = 5
 
     def on_close(self, _):
+        """Handle the "close" event from the websocket.
+
+        A Basic message with the name "close" is forwarded to the emitter.
+        """
         self.emitter.emit("close")
 
     def on_error(self, _, error):
-        """ On error start trying to reconnect to the websocket. """
+        """On error start trying to reconnect to the websocket."""
         if isinstance(error, WebSocketConnectionClosedException):
             LOG.warning('Could not send message because connection has closed')
         else:
-            LOG.exception('=== ' + repr(error) + ' ===')
+            LOG.exception('=== %s ===', repr(error))
 
         try:
             self.emitter.emit('error', error)
             if self.client.keep_running:
                 self.client.close()
         except Exception as e:
-            LOG.error('Exception closing websocket: ' + repr(e))
+            LOG.error('Exception closing websocket: %s', repr(e))
 
-        LOG.warning(
-            "Message Bus Client will reconnect in %d seconds." % self.retry
-        )
+        LOG.warning("Message Bus Client "
+                    "will reconnect in %.1f seconds.", self.retry)
         time.sleep(self.retry)
         self.retry = min(self.retry * 2, 60)
         try:
@@ -144,11 +164,24 @@ class MessageBusClient:
             pass
 
     def on_message(self, _, message):
+        """Handle incoming websocket message.
+
+        Args:
+            message (str): serialized Mycroft Message
+        """
         parsed_message = Message.deserialize(message)
         self.emitter.emit('message', message)
         self.emitter.emit(parsed_message.msg_type, parsed_message)
 
     def emit(self, message):
+        """Send a message onto the message bus.
+
+        This will both send the message to the local process using the
+        event emitter and onto the Mycroft websocket for other processes.
+
+        Args:
+            message (Message): Message to send
+        """
         if not self.connected_event.wait(10):
             if not self.started_running:
                 raise ValueError('You must execute run_forever() '
@@ -161,8 +194,8 @@ class MessageBusClient:
             else:
                 self.client.send(json.dumps(message.__dict__))
         except WebSocketConnectionClosedException:
-            LOG.warning('Could not send {} message because connection '
-                        'has been closed'.format(message.msg_type))
+            LOG.warning('Could not send %s message because connection '
+                        'has been closed', message.msg_type)
 
     def wait_for_message(self, message_type, timeout=3.0):
         """Wait for a message of a specific type.
@@ -196,32 +229,50 @@ class MessageBusClient:
         return waiter.wait(timeout)
 
     def on(self, event_name, func):
+        """Register callback with event emitter.
+
+        Args:
+            event_name (str): message type to map to the callback
+            func (callable): callback function
+        """
         self.emitter.on(event_name, func)
 
     def once(self, event_name, func):
+        """Register callback with event emitter for a single call.
+
+        Args:
+            event_name (str): message type to map to the callback
+            func (callable): callback function
+        """
         self.emitter.once(event_name, func)
 
     def remove(self, event_name, func):
+        """Remove registered event.
+
+        Args:
+            event_name (str): message type to map to the callback
+            func (callable): callback function
+        """
         try:
-            if not event_name in self.emitter._events:
-                LOG.debug("Not able to find '"+str(event_name)+"'")
+            if event_name not in self.emitter._events:
+                LOG.debug("Not able to find '%s'", event_name)
             self.emitter.remove_listener(event_name, func)
         except ValueError:
-            LOG.warning('Failed to remove event {}: {}'.format(event_name,
-                                                               str(func)))
+            LOG.warning('Failed to remove event %s: %s',
+                        event_name, str(func))
             for line in traceback.format_stack():
                 LOG.warning(line.strip())
 
-            if not event_name in self.emitter._events:
-                LOG.debug("Not able to find '"+str(event_name)+"'")
-            LOG.warning("Existing events: " + str(self.emitter._events))
+            if event_name not in self.emitter._events:
+                LOG.debug("Not able to find '%s'", event_name)
+            LOG.warning("Existing events: %s", repr(self.emitter._events))
             for evt in self.emitter._events:
-                LOG.warning("   "+str(evt))
-                LOG.warning("       "+str(self.emitter._events[evt]))
+                LOG.warning("   %s", repr(evt))
+                LOG.warning("       %s", repr(self.emitter._events[evt]))
             if event_name in self.emitter._events:
-                LOG.debug("Removing found '"+str(event_name)+"'")
+                LOG.debug("Removing found '%s'", event_name)
             else:
-                LOG.debug("Not able to find '"+str(event_name)+"'")
+                LOG.debug("Not able to find '%s'", event_name)
             LOG.warning('----- End dump -----')
 
     def remove_all_listeners(self, event_name):
@@ -235,10 +286,12 @@ class MessageBusClient:
         self.emitter.remove_all_listeners(event_name)
 
     def run_forever(self):
+        """Start the websocket handling."""
         self.started_running = True
         self.client.run_forever()
 
     def close(self):
+        """Close the websocket connection."""
         self.client.close()
         self.connected_event.clear()
 
@@ -251,6 +304,7 @@ class MessageBusClient:
 
 
 def echo():
+    """Echo function repeating all input from a user."""
     message_bus_client = MessageBusClient()
 
     def repeat_utterance(message):

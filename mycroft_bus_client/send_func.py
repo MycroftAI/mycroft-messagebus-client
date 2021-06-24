@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+Send offers a simple entry point for scripts to send a single  message on
+the mycroft messagebus.
+
+A bash script can run
+
+python -c "from mycroft_bus_client.send_func import send; \
+send('speak', {'utterance': 'hello'})"
+"""
 from websocket import create_connection
 
 from .client import MessageBusClient

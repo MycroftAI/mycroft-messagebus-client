@@ -15,6 +15,9 @@ import json
 
 from .client import MessageBusClient
 
+"""Functions for handling loading messagebus client configurations."""
+
+
 def client_from_config(subconf='core', file_path='/etc/mycroft/bus.conf'):
     """Load messagebus configuration from file.
 

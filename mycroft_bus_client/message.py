@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import json
+"""
+Classes and functions related to the Mycroft Message.
+
+The Message object is the core construct passed on the message bus
+it contains methods for tracking message context and
+serializing / deserializing the message for transmission.
+"""
+
 import inspect
+import json
 
 from copy import deepcopy
 
@@ -175,3 +183,4 @@ def dig_for_message():
     for l in local_vars:
         if 'message' in l and isinstance(l['message'], Message):
             return l['message']
+    return None
