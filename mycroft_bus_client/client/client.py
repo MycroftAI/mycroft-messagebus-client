@@ -94,9 +94,10 @@ class MessageBusClient:
     like the pyee EventEmitter and tries to offer as much convenience as
     possible to the developer.
     """
-    def __init__(self, host='0.0.0.0', port=8181, route='/core', ssl=False):
+    def __init__(self, host='0.0.0.0', port=8181, route='/core', ssl=False,
+                 emitter=ExecutorEventEmitter()):
         self.config = MessageBusClientConf(host, port, route, ssl)
-        self.emitter = ExecutorEventEmitter()
+        self.emitter = emitter
         self.client = self.create_client()
         self.retry = 5
         self.connected_event = Event()

@@ -14,6 +14,8 @@
 #
 from unittest.mock import Mock
 
+from pyee import ExecutorEventEmitter
+
 from mycroft_bus_client import MessageBusClient
 from mycroft_bus_client.client import MessageWaiter
 
@@ -38,6 +40,15 @@ class TestMessageBusClient:
     def test_create_client(self):
         mc = MessageBusClient()
         assert mc.client.url == 'ws://0.0.0.0:8181/core'
+
+    def test_create_client_default_executor(self):
+        mc = MessageBusClient()
+        assert type(mc.emitter) == ExecutorEventEmitter
+
+    def test_create_client_custom_executor(self):
+        mock_emitter = Mock()
+        mc = MessageBusClient(emitter=mock_emitter)
+        assert mc.emitter == mock_emitter
 
 
 class TestMessageWaiter:
