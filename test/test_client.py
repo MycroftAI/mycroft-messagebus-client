@@ -16,8 +16,8 @@ from unittest.mock import Mock
 
 from pyee import ExecutorEventEmitter
 
-from mycroft_bus_client import MessageBusClient
-from mycroft_bus_client.client import MessageWaiter
+from mycroft_bus_client import MessageBusClient, Message
+from mycroft_bus_client.client import MessageWaiter, MessageCollector
 
 
 WS_CONF = {
@@ -68,3 +68,58 @@ class TestMessageWaiter:
         bus.once.assert_called_with('delayed.message', waiter._handler)
 
         assert waiter.wait(0.3) is None
+
+
+class TestMessageCollector:
+    def test_message_wait_success(self):
+        bus = Mock()
+        collector = MessageCollector(bus, Message('delayed.message'),
+                                     min_timeout=0.0, max_timeout=2.0)
+
+        test_register = Mock(name='test_register')
+        test_register.data = {
+            'query': collector.collect_id,
+            'handler': 'test_handler1'
+        }
+        collector._register_handler(test_register)  # Inject response
+
+        test_response = Mock(name='test_register')
+        test_response.data = {
+            'query': collector.collect_id,
+            'handler': 'test_handler1'
+        }
+        collector._receive_response(test_response)
+
+        assert collector.collect() == [test_response]
+
+    def test_message_drop_invalid(self):
+        bus = Mock()
+        collector = MessageCollector(bus, Message('delayed.message'),
+                                     min_timeout=0.0, max_timeout=2.0)
+
+        valid_register = Mock(name='valid_register')
+        valid_register.data = {
+            'query': collector.collect_id,
+            'handler': 'test_handler1'
+        }
+        invalid_register = Mock(name='invalid_register')
+        invalid_register.data = {
+            'query': 'asdf',
+            'handler': 'test_handler1'
+        }
+        collector._register_handler(valid_register)  # Inject response
+        collector._register_handler(invalid_register)  # Inject response
+
+        valid_response = Mock(name='valid_register')
+        valid_response.data = {
+            'query': collector.collect_id,
+            'handler': 'test_handler1'
+        }
+        invalid_response = Mock(name='invalid_register')
+        invalid_response.data = {
+            'query': 'asdf',
+            'handler': 'test_handler1'
+        }
+        collector._receive_response(valid_response)
+        collector._receive_response(invalid_response)
+        assert collector.collect() == [valid_response]
