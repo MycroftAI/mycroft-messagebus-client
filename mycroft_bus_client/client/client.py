@@ -109,9 +109,11 @@ class MessageCollector:
         # Create an unique id for the collection
         self.collect_id = str(uuid4())
         self.handlers = {}
+        self.responses = {}
         self.all_collected = Event()
         self.message = message
         self.message.context['__collect_id__'] = self.collect_id
+        self._start_time = 0
 
     def _register_handler(self, msg):
         """Handler for registration of collection handler.
@@ -120,10 +122,12 @@ class MessageCollector:
             msg: Message from handler.
         """
         handler_id = msg.data['handler']
+        timeout = msg.data['timeout']
         with self.lock:
             if (msg.data['query'] == self.collect_id and
                     handler_id not in self.handlers):
-                self.handlers[handler_id] = None
+                previous_timeout = self.handlers.get(handler_id, 0)
+                self.handlers[handler_id] = previous_timeout + timeout
 
     def _receive_response(self, msg):
         """Handler for capturing final response from a handler.
@@ -133,12 +137,11 @@ class MessageCollector:
         """
         with self.lock:
             if msg.data['query'] == self.collect_id:
-                self.handlers[msg.data['handler']] = msg
+                self.responses[msg.data['handler']] = msg
+                self.handlers[msg.data['handler']] = 0  # Reset timeout
                 # If all registered handlers have responded with an answer
                 # or a VERY good answer has been found indicate end of wait.
-                all_collected = all(
-                    [self.handlers[k] is not None for k in self.handlers]
-                )
+                all_collected = len(self.responses) == len(self.handlers)
                 if (all_collected or self.direct_return_func(msg)):
                     self.all_collected.set()
 
@@ -165,14 +168,35 @@ class MessageCollector:
             # No handlers has registered to answer the query
             result = []
         else:
-            # Wait until all registered handlers have sent a response
-            # or the timeout is reached.
-            remaining_timeout = self.max_timeout - self.min_timeout
-            self.all_collected.wait(timeout=remaining_timeout)
-            result = [self.handlers[key] for key in self.handlers]
+            result = self._wait_for_registered_handlers()
 
         self._teardown_collection_handlers()
         return result
+
+    def _wait_for_registered_handlers(self):
+        """
+        Wait until all handlers have sent a response or the timeout is reached.
+        """
+        # Reset the all_collected event if needed.
+        # May be set if the first registered message replies immediately before
+        # any other handlers has registered.
+        # TODO: check early return criteria
+        with self.lock:
+            all_collected = len(self.responses) == len(self.handlers)
+            if not all_collected:
+                self.all_collected.clear()
+
+        # Wait until all handlers have responded or timeout is reached
+        time_waited = self.min_timeout
+        remaining_timeout = max(self.handlers.values()) - time_waited
+        while remaining_timeout > 0.0 and time_waited < self.max_timeout:
+            if self.all_collected.wait(timeout=0.1):
+                break
+
+            time_waited += 0.1
+            remaining_timeout = max(self.handlers.values()) - time_waited
+
+        return [self.responses[key] for key in self.responses]
 
 
 MessageBusClientConf = namedtuple('MessageBusClientConf',
@@ -325,7 +349,7 @@ class MessageBusClient:
                                      direct_return_func)
         return collector.collect()
 
-    def on_collect(self, event_name, func):
+    def on_collect(self, event_name, func, timeout=2):
         """Create a handler for a collect_responses call.
 
         This immeditely responds with an ack to register the handler with
@@ -337,6 +361,7 @@ class MessageBusClient:
             event_name (str): Message type to listen for.
             func (callable): function / method do be called for processing the
                              message.
+            timeout (int/float): optional timeout of the handler
         """
         def wrapper(msg):
             collect_id = msg.context['__collect_id__']
@@ -344,7 +369,8 @@ class MessageBusClient:
             # Immediately respond that something is working on the issue
             acknowledge = Message(msg.msg_type + '.handling',
                                   data={'query': collect_id,
-                                        'handler': handler_id})
+                                        'handler': handler_id,
+                                        'timeout': timeout})
             self.emit(acknowledge)
             func(CollectionMessage.from_message(msg, handler_id, collect_id))
         self.wrapped_funcs[func] = wrapper

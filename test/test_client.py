@@ -79,6 +79,7 @@ class TestMessageCollector:
         test_register = Mock(name='test_register')
         test_register.data = {
             'query': collector.collect_id,
+            'timeout': 5,
             'handler': 'test_handler1'
         }
         collector._register_handler(test_register)  # Inject response
@@ -100,11 +101,13 @@ class TestMessageCollector:
         valid_register = Mock(name='valid_register')
         valid_register.data = {
             'query': collector.collect_id,
+            'timeout': 5,
             'handler': 'test_handler1'
         }
         invalid_register = Mock(name='invalid_register')
         invalid_register.data = {
             'query': 'asdf',
+            'timeout': 5,
             'handler': 'test_handler1'
         }
         collector._register_handler(valid_register)  # Inject response
