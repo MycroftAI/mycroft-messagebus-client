@@ -259,5 +259,22 @@ class CollectionMessage(Message):
                                    self.context)
         return response_message
 
-    def extend(self):
-        """TODO: EXTEND THE TIMEOUT..."""
+    def extend(self, timeout):
+        """Extend current timeout,
+
+        The timeout provided will be added to the existing timeout.
+
+        Arguments:
+            timeout (int/float): timeout extension
+
+        Returns:
+            Extension message.
+        """
+        data = {}
+        data['query'] = self.query_id
+        data['handler'] = self.handler_id
+        data['timeout'] = timeout
+        response_message = Message(self.msg_type + '.handling',
+                                   data,
+                                   self.context)
+        return response_message
