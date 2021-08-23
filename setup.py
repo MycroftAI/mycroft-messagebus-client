@@ -41,7 +41,7 @@ def required(requirements_file):
 
 setup(
     name='mycroft-messagebus-client',
-    version='0.9.6',
+    version='0.10.0',
     packages=['mycroft_bus_client', 'mycroft_bus_client.client',
               'mycroft_bus_client.util'],
     package_data={
