@@ -121,7 +121,7 @@ class MessageBusClient:
         return WebSocketApp(url, on_open=self.on_open, on_close=self.on_close,
                             on_error=self.on_error, on_message=self.on_message)
 
-    def on_open(self, _):
+    def on_open(self, *args):
         """Handle the "open" event from the websocket.
 
         A Basic message with the name "open" is forwarded to the emitter.
@@ -132,15 +132,19 @@ class MessageBusClient:
         # Restore reconnect timer to 5 seconds on sucessful connect
         self.retry = 5
 
-    def on_close(self, _):
+    def on_close(self, *args):
         """Handle the "close" event from the websocket.
 
         A Basic message with the name "close" is forwarded to the emitter.
         """
         self.emitter.emit("close")
 
-    def on_error(self, _, error):
+    def on_error(self, *args):
         """On error start trying to reconnect to the websocket."""
+        if len(args) == 1:
+            error = args[0]
+        else:
+            error = args[1]
         if isinstance(error, WebSocketConnectionClosedException):
             LOG.warning('Could not send message because connection has closed')
         else:
@@ -164,12 +168,16 @@ class MessageBusClient:
         except WebSocketException:
             pass
 
-    def on_message(self, _, message):
+    def on_message(self, *args):
         """Handle incoming websocket message.
 
         Args:
             message (str): serialized Mycroft Message
         """
+        if len(args) == 1:
+            message = args[0]
+        else:
+            message = args[1]
         parsed_message = Message.deserialize(message)
         self.emitter.emit('message', message)
         self.emitter.emit(parsed_message.msg_type, parsed_message)
