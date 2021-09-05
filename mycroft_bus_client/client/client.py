@@ -95,9 +95,9 @@ class MessageBusClient:
     possible to the developer.
     """
     def __init__(self, host='0.0.0.0', port=8181, route='/core', ssl=False,
-                 emitter=ExecutorEventEmitter()):
+                 emitter=None):
         self.config = MessageBusClientConf(host, port, route, ssl)
-        self.emitter = emitter
+        self.emitter = emitter or ExecutorEventEmitter()
         self.client = self.create_client()
         self.retry = 5
         self.connected_event = Event()
