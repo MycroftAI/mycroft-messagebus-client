@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from queue import Queue
 from threading import Lock, Event
 from uuid import uuid4
 import time
@@ -50,6 +51,22 @@ class MessageCollector:
         self.message.context['__collect_id__'] = self.collect_id
         self._start_time = 0
 
+        self.on_response_callback = None
+        self.queue = Queue()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        msg = Queue.get()
+        if msg is not None:
+            return msg
+        else:
+            raise StopIteration
+
+    def on_response(self, callback_func):
+        self.on_response_callback = callback_func
+
     def _register_handler(self, msg):
         """Handler for registration of collection handler.
 
@@ -72,13 +89,18 @@ class MessageCollector:
         """
         with self.lock:
             if msg.data['query'] == self.collect_id:
+                self.queue.put(msg)
                 self.responses[msg.data['handler']] = msg
                 self.handlers[msg.data['handler']] = 0  # Reset timeout
                 # If all registered handlers have responded with an answer
                 # or a VERY good answer has been found indicate end of wait.
                 all_collected = len(self.responses) == len(self.handlers)
                 if (all_collected or self.direct_return_func(msg)):
+                    self.queue.put(None)
                     self.all_collected.set()
+
+        if self.on_response_callback:
+            self.on_response_callback(msg)
 
     def _setup_collection_handlers(self):
         """Create messages for handling and responses."""
@@ -92,21 +114,32 @@ class MessageCollector:
         self.bus.remove(base_msg_type + '.handling', self._register_handler)
         self.bus.remove(base_msg_type + '.response', self._receive_response)
 
-    def collect(self):
-        """Call collect handlers and wait for them to finish."""
-        # Register handler to capture handlers trying to provide answer
+    def start(self):
+        """Send collection request.
+
+        Register handler to capture handlers trying to provide answer.
+        """
         self._setup_collection_handlers()
         self.bus.emit(self.message)
+        self.start_time = time.monotonic()
 
         time.sleep(self.min_timeout)
+
+    def collect(self):
+        """Emit message and wait for handlers to finish."""
+        self.start()
         if len(self.handlers) == 0:
             # No handlers has registered to answer the query
             result = []
         else:
             result = self._wait_for_registered_handlers()
 
-        self._teardown_collection_handlers()
+        self.shutdown()
         return result
+
+    def wait(self):
+        """Wait for timeout or for all handlers to respond."""
+        self._wait_for_registered_handlers()
 
     def _wait_for_registered_handlers(self):
         """
@@ -131,4 +164,11 @@ class MessageCollector:
             time_waited += 0.1
             remaining_timeout = max(self.handlers.values()) - time_waited
 
+        self.queue.put(None)
         return [self.responses[key] for key in self.responses]
+
+    def shutdown(self):
+        """Shutdown the object, stop waiting for further responses."""
+        self._teardown_collection_handlers()
+        if self.on_response_callback:
+            self.on_response_callback = None
