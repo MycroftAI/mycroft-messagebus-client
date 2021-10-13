@@ -24,6 +24,7 @@ import inspect
 import json
 
 from copy import deepcopy
+from typing import Optional
 
 
 class Message:
@@ -174,13 +175,22 @@ class Message:
         return Message(msg_type, data, context=new_context)
 
 
-def dig_for_message():
-    """Dig Through the stack for message."""
-    stack = inspect.stack()
-    # Limit search to 10 frames back
-    stack = stack if len(stack) < 10 else stack[:10]
-    local_vars = [frame[0].f_locals for frame in stack]
-    for l in local_vars:
-        if 'message' in l and isinstance(l['message'], Message):
-            return l['message']
+def dig_for_message(max_records: int = 10) -> Optional[Message]:
+    """
+    Dig Through the stack for message. Looks at the current stack
+    for a passed argument of type 'Message'.
+    Args:
+        max_records (int): Maximum number of stack records to look through
+
+    Returns:
+        Message if found in args, else None
+    """
+    stack = inspect.stack()[1:]  # First frame will be this function call
+    stack = stack if len(stack) <= max_records else stack[:max_records]
+    for record in stack:
+        args = inspect.getargvalues(record.frame)
+        if args.args:
+            for arg in args.args:
+                if isinstance(args.locals[arg], Message):
+                    return args.locals[arg]
     return None
