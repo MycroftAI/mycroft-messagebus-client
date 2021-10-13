@@ -177,9 +177,13 @@ class Message:
 
 def dig_for_message(max_records: int = 10) -> Optional[Message]:
     """
-    Dig Through the stack for message. Looks at the current stack for a passed argument of type 'Message'
-    :param max_records: Maximum number of stack records to look through
-    :return: Message if found in args, else None
+    Dig Through the stack for message. Looks at the current stack
+    for a passed argument of type 'Message'.
+    Args:
+        max_records (int): Maximum number of stack records to look through
+
+    Returns:
+        Message if found in args, else None
     """
     stack = inspect.stack()[1:]  # First frame will be this function call
     stack = stack if len(stack) <= max_records else stack[:max_records]

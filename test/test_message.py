@@ -6,12 +6,10 @@ from mycroft_bus_client.message import dig_for_message
 
 
 def get_message_standard(message):
-    print(message)
     return dig_for_message()
 
 
 def get_message_alt_name(msg):
-    print(msg)
     return dig_for_message()
 
 
@@ -69,12 +67,12 @@ class TestMessage(TestCase):
         wrapper_method(message)
 
     def test_dig_for_message_invalid_type(self):
-        tester = Message("test message", {"test": "data"}, {"time": time()})
+        _tester = Message("test message", {"test": "data"}, {"time": time()})
 
         def wrapper_method(_):
             return dig_for_message()
         self.assertIsNone(wrapper_method(dict()))
 
     def test_dig_for_message_no_method_call(self):
-        message = Message("test message", {"test": "data"}, {"time": time()})
+        _message = Message("test message", {"test": "data"}, {"time": time()})
         self.assertIsNone(dig_for_message())
