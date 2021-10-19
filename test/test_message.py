@@ -67,12 +67,14 @@ class TestMessage(TestCase):
         wrapper_method(message)
 
     def test_dig_for_message_invalid_type(self):
-        _tester = Message("test message", {"test": "data"}, {"time": time()})
+        # Message that should be ignored
+        _ = Message("test message", {"test": "data"}, {"time": time()})
 
         def wrapper_method(_):
             return dig_for_message()
         self.assertIsNone(wrapper_method(dict()))
 
     def test_dig_for_message_no_method_call(self):
-        _message = Message("test message", {"test": "data"}, {"time": time()})
+        # Message that should be ignored
+        _ = Message("test message", {"test": "data"}, {"time": time()})
         self.assertIsNone(dig_for_message())
