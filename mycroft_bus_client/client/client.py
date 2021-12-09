@@ -147,6 +147,8 @@ class MessageBusClient:
             error = args[1]
         if isinstance(error, WebSocketConnectionClosedException):
             LOG.warning('Could not send message because connection has closed')
+        elif isinstance(error, ConnectionRefusedError):
+            LOG.warning('Connection Refused. Is Messagebus Service running?')
         else:
             LOG.exception('=== %s ===', repr(error))
 
