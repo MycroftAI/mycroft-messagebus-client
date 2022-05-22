@@ -44,11 +44,14 @@ class TestMessage(TestCase):
         """Assert that the source and destination are swapped"""
         source = Message('test_type',
                          data={'robot': 'marvin', 'android': 'data'},
-                         context={'source': 'earth', 'destination': 'alpha centauri'})
+                         context={'source': 'earth',
+                                  'destination': 'alpha centauri'})
 
         reply_msg = source.reply('reply_type')
-        self.assertEqual(reply_msg.context["source"], source.context["destination"])
-        self.assertEqual(reply_msg.context["destination"], source.context["source"])
+        self.assertEqual(reply_msg.context["source"],
+                         source.context["destination"])
+        self.assertEqual(reply_msg.context["destination"],
+                         source.context["source"])
 
         # assert that .response calls .reply internally as stated in docstrings
         response_msg = source.response()
