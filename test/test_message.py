@@ -40,6 +40,23 @@ class TestMessage(TestCase):
         self.assertEqual(response_msg.data, {})
         self.assertEqual(response_msg.context, source.context)
 
+    def test_reply(self):
+        """Assert that the source and destination are swapped"""
+        source = Message('test_type',
+                         data={'robot': 'marvin', 'android': 'data'},
+                         context={'source': 'earth',
+                                  'destination': 'alpha centauri'})
+
+        reply_msg = source.reply('reply_type')
+        self.assertEqual(reply_msg.context["source"],
+                         source.context["destination"])
+        self.assertEqual(reply_msg.context["destination"],
+                         source.context["source"])
+
+        # assert that .response calls .reply internally as stated in docstrings
+        response_msg = source.response()
+        self.assertEqual(response_msg.context, reply_msg.context)
+
     def test_dig_for_message_simple(self):
         test_msg = Message("test message", {"test": "data"}, {"time": time()})
         self.assertEqual(test_msg, get_message_standard(test_msg))
