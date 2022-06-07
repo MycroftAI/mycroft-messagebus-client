@@ -225,6 +225,8 @@ class CollectionMessage(Message):
         """Create a message indicating a successful result.
 
         The handler could handle the query and created some sort of response.
+        The source and destination is switched in the context like when
+        sending a normal response message.
 
             data (dict): message data
             context (dict): message context
@@ -235,15 +237,17 @@ class CollectionMessage(Message):
         data['query'] = self.query_id
         data['handler'] = self.handler_id
         data['succeeded'] = True
-        response_message = Message(self.msg_type + '.response',
-                                   data,
-                                   context or self.context)
+        response_message = self.reply(self.msg_type + '.response',
+                                      data,
+                                      context or self.context)
         return response_message
 
     def failure(self):
         """Create a message indicating a failing result.
 
         The handler could not handle the query.
+        The source and destination is switched in the context like when
+        sending a normal response message.
 
             data (dict): message data
             context (dict): message context
@@ -254,15 +258,17 @@ class CollectionMessage(Message):
         data['query'] = self.query_id
         data['handler'] = self.handler_id
         data['succeeded'] = False
-        response_message = Message(self.msg_type + '.response',
-                                   data,
-                                   self.context)
+        response_message = self.reply(self.msg_type + '.response',
+                                      data,
+                                      self.context)
         return response_message
 
     def extend(self, timeout):
         """Extend current timeout,
 
         The timeout provided will be added to the existing timeout.
+        The source and destination is switched in the context like when
+        sending a normal response message.
 
         Arguments:
             timeout (int/float): timeout extension
@@ -274,7 +280,7 @@ class CollectionMessage(Message):
         data['query'] = self.query_id
         data['handler'] = self.handler_id
         data['timeout'] = timeout
-        response_message = Message(self.msg_type + '.handling',
-                                   data,
-                                   self.context)
+        response_message = self.reply(self.msg_type + '.handling',
+                                      data,
+                                      self.context)
         return response_message

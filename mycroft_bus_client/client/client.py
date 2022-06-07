@@ -207,10 +207,10 @@ class MessageBusClient:
             collect_id = msg.context['__collect_id__']
             handler_id = str(uuid4())
             # Immediately respond that something is working on the issue
-            acknowledge = Message(msg.msg_type + '.handling',
-                                  data={'query': collect_id,
-                                        'handler': handler_id,
-                                        'timeout': timeout})
+            acknowledge = msg.reply(msg.msg_type + '.handling',
+                                    data={'query': collect_id,
+                                          'handler': handler_id,
+                                          'timeout': timeout})
             self.emit(acknowledge)
             func(CollectionMessage.from_message(msg, handler_id, collect_id))
         self.wrapped_funcs[func] = wrapper
