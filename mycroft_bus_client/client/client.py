@@ -115,7 +115,7 @@ class MessageBusClient:
             if self.client.keep_running:
                 self.client.close()
         except Exception as e:
-            LOG.error('Exception closing websocket: %s', repr(e))
+            LOG.error(f'Exception closing websocket at {self.client.url}: {e}')
 
         LOG.warning("Message Bus Client "
                     "will reconnect in %.1f seconds.", self.retry)
